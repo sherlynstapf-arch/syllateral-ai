@@ -94,17 +94,21 @@ if not api_key:
     st.warning("Introduce tu API Key en el panel lateral para arrancar el motor de Inteligencia Cívica.")
     st.stop()
 
-# Inicialización del cliente y chat
-client = genai.Client(api_key=api_key)
-
-if "chat_session" not in st.session_state:
-    st.session_state.chat_session = client.chats.create(
-        model="gemini-2.5-flash",
-        config=types.GenerateContentConfig(
-            system_instruction=INSTRUCCION_SISTEMA,
-            temperature=0.6,
+# Inicialización segura del cliente y chat
+if "chat_session" not in st.session_state or st.session_state.get("current_api_key") != api_key:
+    try:
+        client = genai.Client(api_key=api_key)
+        st.session_state.chat_session = client.chats.create(
+            model="gemini-2.0-flash",
+            config=types.GenerateContentConfig(
+                system_instruction=INSTRUCCION_SISTEMA,
+                temperature=0.6,
+            )
         )
-    )
+        st.session_state.current_api_key = api_key
+    except Exception as e:
+        st.error(f"Error al conectar con la API Key ingresada: {e}")
+        st.stop()
 
 if "messages" not in st.session_state:
     st.session_state.messages = [
@@ -124,6 +128,9 @@ if user_input := st.chat_input("Plantea tu idea, responde a la validación o pid
 
     with st.chat_message("assistant"):
         with st.spinner("Analizando con Pensamiento Lateral y Lógica Deductiva..."):
-            response = st.session_state.chat_session.send_message(user_input)
-            st.markdown(response.text)
-            st.session_state.messages.append({"role": "assistant", "content": response.text})
+            try:
+                response = st.session_state.chat_session.send_message(user_input)
+                st.markdown(response.text)
+                st.session_state.messages.append({"role": "assistant", "content": response.text})
+            except Exception as e:
+                st.error(f"Error al generar respuesta: {e}")
