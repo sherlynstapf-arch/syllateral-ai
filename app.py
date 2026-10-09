@@ -3,7 +3,7 @@ from google import genai
 from google.genai import types
 
 # ==========================================
-# 1. CONFIGURACIÓN E IDENTIDAD VISUAL
+# 1. IDENTIDAD VISUAL Y CONFIGURACIÓN
 # ==========================================
 st.set_page_config(
     page_title="SYLLATERAL AI | Inteligencia Cívica",
@@ -11,6 +11,7 @@ st.set_page_config(
     layout="wide"
 )
 
+# Estilos visuales del anteproyecto (Terracota, Negro Cerámica, Pergamino)
 st.markdown("""
     <style>
     .stApp { background-color: #121212; color: #F7F5F0; font-family: 'Inter', sans-serif; }
@@ -67,12 +68,11 @@ PAUTAS CONVERSACIONALES:
 """
 
 # ==========================================
-# 3. INTERFAZ DE USUARIO
+# 3. INTERFAZ DE USUARIO Y PANEL LATERAL
 # ==========================================
 st.title("🏛️ SYLLATERAL AI")
 st.markdown("*La información nace, crece, se reproduce pero no debe morir.*")
 
-# Panel Lateral
 with st.sidebar:
     st.header("Flujo de Inteligencia Cívica")
     st.markdown("Monitor de conexión con las bases de datos del sistema:")
@@ -86,23 +86,20 @@ if not api_key:
     st.warning("Introduce tu API Key en el panel lateral para arrancar el motor de Inteligencia Cívica.")
     st.stop()
 
-# Historial de chat
+# Historial de conversación
 if "messages" not in st.session_state:
     st.session_state.messages = [
         {"role": "assistant", "content": "¡Hola! Bienvenido a **SYLLATERAL AI**. Soy tu consultor de Inteligencia Cívica, oratoria y liderazgo. ¿Qué debate, propuesta o problemática comunitaria deseas abordar hoy?"}
     ]
 
-# Renderizar mensajes guardados
+# Renderizar mensajes existentes
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
-# Capturar entrada del usuario
+# Captura de mensaje del usuario
 if user_input := st.chat_input("Escribe tu idea, consulta, propuesta o debate..."):
-    # Evitar mensajes duplicados en la pantalla
-    if not st.session_state.messages or st.session_state.messages[-1]["content"] != user_input:
-        st.session_state.messages.append({"role": "user", "content": user_input})
-    
+    st.session_state.messages.append({"role": "user", "content": user_input})
     with st.chat_message("user"):
         st.markdown(user_input)
 
@@ -111,7 +108,7 @@ if user_input := st.chat_input("Escribe tu idea, consulta, propuesta o debate...
             try:
                 client = genai.Client(api_key=api_key)
 
-                # Construir el historial para Gemini
+                # Preparar el historial de chat para la API
                 contents = []
                 for m in st.session_state.messages:
                     role = "user" if m["role"] == "user" else "model"
@@ -122,28 +119,18 @@ if user_input := st.chat_input("Escribe tu idea, consulta, propuesta o debate...
                         )
                     )
 
-                # Intentar con gemini-2.5-flash primero, y respaldo a gemini-1.5-flash si es necesario
-                try:
-                    response = client.models.generate_content(
-                        model="gemini-2.5-flash",
-                        contents=contents,
-                        config=types.GenerateContentConfig(
-                            system_instruction=INSTRUCCION_SISTEMA,
-                            temperature=0.7,
-                        )
+                # Usar el modelo activo oficial 'gemini-2.5-flash'
+                response = client.models.generate_content(
+                    model="gemini-2.5-flash",
+                    contents=contents,
+                    config=types.GenerateContentConfig(
+                        system_instruction=INSTRUCCION_SISTEMA,
+                        temperature=0.7,
                     )
-                except Exception:
-                    response = client.models.generate_content(
-                        model="gemini-1.5-flash",
-                        contents=contents,
-                        config=types.GenerateContentConfig(
-                            system_instruction=INSTRUCCION_SISTEMA,
-                            temperature=0.7,
-                        )
-                    )
+                )
 
                 st.markdown(response.text)
                 st.session_state.messages.append({"role": "assistant", "content": response.text})
 
             except Exception as e:
-                st.error(f"❌ Error al conectar con la API de Gemini: {e}\n\nPor favor verifica que la API Key ingresada en el panel lateral sea correcta.")
+                st.error(f"❌ Error al consultar la API: {e}\n\nVerifica que tu API Key ingresada sea correcta y esté activa en Google AI Studio.")
