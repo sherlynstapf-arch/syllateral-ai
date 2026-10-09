@@ -3,7 +3,7 @@ from google import genai
 from google.genai import types
 
 # ==========================================
-# 1. IDENTIDAD VISUAL Y CONFIGURACIÓN
+# 1. CONFIGURACIÓN E IDENTIDAD VISUAL
 # ==========================================
 st.set_page_config(
     page_title="SYLLATERAL AI | Inteligencia Cívica",
@@ -11,7 +11,6 @@ st.set_page_config(
     layout="wide"
 )
 
-# Estilos con los colores del anteproyecto: Naranja Terracota, Negro Cerámica y Pergamino
 st.markdown("""
     <style>
     .stApp { background-color: #121212; color: #F7F5F0; font-family: 'Inter', sans-serif; }
@@ -23,7 +22,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==========================================
-# 2. BASES DE DATOS Y CONTEXTO CÍVICO
+# 2. CONTEXTO CÍVICO Y BASES DE DATOS
 # ==========================================
 DATOS_ABIERTOS = """
 - Presupuesto participativo promedio para proyectos juveniles: $15,000 - $50,000 USD.
@@ -45,9 +44,6 @@ Regla de los 2 Minutos (Máximo 300 palabras):
 4. Peroratio (Cierre): Llamado a la acción que apele a la emoción ciudadana (30 seg).
 """
 
-# ==========================================
-# 3. PROMPT MAESTRO DEL CONSULTOR CÍVICO
-# ==========================================
 INSTRUCCION_SISTEMA = f"""
 Eres el Asistente de Inteligencia Cívica de SYLLATERAL AI.
 Tu objetivo es actuar como un consultor político, cívico y retórico altamente fluido, receptivo y estratégico.
@@ -71,7 +67,7 @@ PAUTAS CONVERSACIONALES:
 """
 
 # ==========================================
-# 4. INTERFAZ Y CHATBOT
+# 3. INTERFAZ DE USUARIO
 # ==========================================
 st.title("🏛️ SYLLATERAL AI")
 st.markdown("*La información nace, crece, se reproduce pero no debe morir.*")
@@ -90,53 +86,64 @@ if not api_key:
     st.warning("Introduce tu API Key en el panel lateral para arrancar el motor de Inteligencia Cívica.")
     st.stop()
 
-# Historial de conversación
+# Historial de chat
 if "messages" not in st.session_state:
     st.session_state.messages = [
         {"role": "assistant", "content": "¡Hola! Bienvenido a **SYLLATERAL AI**. Soy tu consultor de Inteligencia Cívica, oratoria y liderazgo. ¿Qué debate, propuesta o problemática comunitaria deseas abordar hoy?"}
     ]
 
-# Renderizar mensajes anteriores
+# Renderizar mensajes guardados
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
-# Captura de input del usuario
+# Capturar entrada del usuario
 if user_input := st.chat_input("Escribe tu idea, consulta, propuesta o debate..."):
-    # Guardar y mostrar mensaje del usuario
-    st.session_state.messages.append({"role": "user", "content": user_input})
+    # Evitar mensajes duplicados en la pantalla
+    if not st.session_state.messages or st.session_state.messages[-1]["content"] != user_input:
+        st.session_state.messages.append({"role": "user", "content": user_input})
+    
     with st.chat_message("user"):
         st.markdown(user_input)
 
-    # Generar respuesta
     with st.chat_message("assistant"):
         with st.spinner("Analizando respuesta..."):
             try:
                 client = genai.Client(api_key=api_key)
 
-                # Convertir historial al formato requerido por el SDK
-                formatted_contents = []
+                # Construir el historial para Gemini
+                contents = []
                 for m in st.session_state.messages:
                     role = "user" if m["role"] == "user" else "model"
-                    formatted_contents.append(
+                    contents.append(
                         types.Content(
                             role=role,
                             parts=[types.Part.from_text(text=m["content"])]
                         )
                     )
 
-                # Generación fluida de respuesta
-                response = client.models.generate_content(
-                    model="gemini-3.8-flash",
-                    contents=formatted_contents,
-                    config=types.GenerateContentConfig(
-                        system_instruction=INSTRUCCION_SISTEMA,
-                        temperature=0.7,
+                # Intentar con gemini-2.5-flash primero, y respaldo a gemini-1.5-flash si es necesario
+                try:
+                    response = client.models.generate_content(
+                        model="gemini-2.5-flash",
+                        contents=contents,
+                        config=types.GenerateContentConfig(
+                            system_instruction=INSTRUCCION_SISTEMA,
+                            temperature=0.7,
+                        )
                     )
-                )
+                except Exception:
+                    response = client.models.generate_content(
+                        model="gemini-1.5-flash",
+                        contents=contents,
+                        config=types.GenerateContentConfig(
+                            system_instruction=INSTRUCCION_SISTEMA,
+                            temperature=0.7,
+                        )
+                    )
 
                 st.markdown(response.text)
                 st.session_state.messages.append({"role": "assistant", "content": response.text})
 
             except Exception as e:
-                st.error(f"Error en la respuesta: {e}")
+                st.error(f"❌ Error al conectar con la API de Gemini: {e}\n\nPor favor verifica que la API Key ingresada en el panel lateral sea correcta.")
