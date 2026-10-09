@@ -11,7 +11,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# Estilos visuales del anteproyecto (Terracota, Negro Cerámica, Pergamino)
+# Estilos visuales (Terracota, Negro Cerámica, Pergamino)
 st.markdown("""
     <style>
     .stApp { background-color: #121212; color: #F7F5F0; font-family: 'Inter', sans-serif; }
@@ -106,23 +106,22 @@ if user_input := st.chat_input("Escribe tu idea, consulta, propuesta o debate...
     with st.chat_message("assistant"):
         with st.spinner("Analizando respuesta..."):
             try:
-                client = genai.Client(api_key=api_key)
+                # Inicializar el cliente con la API Key sin espacios
+                client = genai.Client(api_key=api_key.strip())
 
-                # Preparar el historial de chat para la API
-                contents = []
+                # Historial ordenado para Gemini
+                history_contents = []
                 for m in st.session_state.messages:
                     role = "user" if m["role"] == "user" else "model"
-                    contents.append(
-                        types.Content(
-                            role=role,
-                            parts=[types.Part.from_text(text=m["content"])]
-                        )
-                    )
+                    history_contents.append({
+                        "role": role,
+                        "parts": [{"text": m["content"]}]
+                    })
 
-                # Usar el modelo activo oficial 'gemini-2.5-flash'
+                # Generar contenido usando el modelo 'gemini-3.8-flash'
                 response = client.models.generate_content(
-                    model="gemini-2.5-flash",
-                    contents=contents,
+                    model="gemini-3.8-flash",
+                    contents=history_contents,
                     config=types.GenerateContentConfig(
                         system_instruction=INSTRUCCION_SISTEMA,
                         temperature=0.7,
