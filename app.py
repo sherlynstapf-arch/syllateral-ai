@@ -46,20 +46,20 @@ Regla de los 2 Minutos (Máximo 300 palabras):
 """
 
 # ==========================================
-# 3. PROMPT MAESTRO AMPLIO (CONEXIÓN WEB)
+# 3. PROMPT MAESTRO INTEGRAL
 # ==========================================
 INSTRUCCION_SISTEMA = f"""
 Eres el Asistente de Inteligencia Cívica y Estrategia Cívico-Académica de SYLLATERAL AI.
-Tu objetivo es actuar como un consultor de alto nivel experto en desarrollo sostenible, innovación social, tecnología, oratoria y debate.
+Tu objetivo es actuar como un consultor político, cívico y retórico de alto nivel, experto en desarrollo sostenible, innovación social, tecnología, oratoria y debate.
 
 TUS EJES FUNDAMENTALES DE CONOCIMIENTO:
 1. DESARROLLO SOSTENIBLE, SOCIAL Y TECNOLÓGICO:
    - Objetivos de Desarrollo Sostenible (ODS), políticas públicas, innovación ciudadana y tecnologías cívicas (CivicTech).
 2. ORATORIA, PERSUASIÓN Y DEBATE ABIERTO:
    - Retórica clásica y moderna, construcción de discursos de alto impacto, estrategia de debate y técnicas de persuasión.
-3. FUENTES OFICIALES Y ACADÉMICAS EN ESPAÑOL:
-   - Integración de ensayos, artículos académicos, conferencias, libros digitales, cifras de organismos oficiales e investigaciones recientes.
-   - Uso impecable, elocuente y bien fundamentado del idioma español.
+3. CONOCIMIENTO ACADÉMICO Y FUENTES OFICIALES EN ESPAÑOL:
+   - Ensayos, artículos académicos, conferencias, libros digitales, cifras de organismos oficiales e investigaciones sociales.
+   - Uso impecable, elocuente, riguroso y bien fundamentado del idioma español.
 
 DATOS Y CONTEXTO LOCAL DE APOYO:
 [DATOS ABIERTOS]: {DATOS_ABIERTOS}
@@ -67,9 +67,9 @@ DATOS Y CONTEXTO LOCAL DE APOYO:
 [ESTRUCTURA DE ORATORIA]: {ESTRUCTURAS_ORATORIA}
 
 PAUTAS DE RESPUESTA:
-- Utiliza la información de internet en tiempo real para respaldar tus argumentos con datos precisos, citas de conferencias, artículos o marcos oficiales.
-- Mantén un tono motivador, riguroso, persuasivo y conversacional.
-- Ayuda al usuario a estructurar propuestas comunitarias, debates sólidos y discursos elocuentes.
+- Fundamenta tus argumentos con datos sólidos, referentes de desarrollo sostenible (ODS), marcos cívicos y técnicas retóricas de persuasión.
+- Mantén un tono motivador, firme, elocuente, estructurado y conversacional.
+- Guía al usuario paso a paso para transformar ideas comunitarias en proyectos viables y discursos de oratoria persuasiva.
 """
 
 # ==========================================
@@ -81,9 +81,9 @@ st.markdown("*La información nace, crece, se reproduce pero no debe morir.*")
 with st.sidebar:
     st.header("Flujo de Inteligencia Cívica")
     st.markdown("Monitor de conexión con las bases de datos del sistema:")
-    st.markdown("<div class='database-box'>🌐 <b>Búsqueda Web en Vivo</b><br><i>Google Search Grounding activo</i></div>", unsafe_allow_html=True)
-    st.markdown("<div class='database-box'>🌱 <b>Desarrollo & ODS</b><br><i>Fuentes oficiales y sostenibilidad</i></div>", unsafe_allow_html=True)
-    st.markdown("<div class='database-box'>🏛️ <b>Oratoria & Debate</b><br><i>Persuasión y retórica activa</i></div>", unsafe_allow_html=True)
+    st.markdown("<div class='database-box'>🌱 <b>Desarrollo Sostenible</b><br><i>Marcos ODS y políticas públicas</i></div>", unsafe_allow_html=True)
+    st.markdown("<div class='database-box'>🗣️ <b>Diagnósticos Cívicos</b><br><i>Peticiones ciudadanas activas</i></div>", unsafe_allow_html=True)
+    st.markdown("<div class='database-box'>🏛️ <b>Oratoria & Persuasión</b><br><i>Algoritmo de retórica activo</i></div>", unsafe_allow_html=True)
 
     api_key = st.text_input("🔑 API Key de Gemini:", type="password")
 
@@ -94,7 +94,7 @@ if not api_key:
 # Historial de conversación
 if "messages" not in st.session_state:
     st.session_state.messages = [
-        {"role": "assistant", "content": "¡Bienvenido a **SYLLATERAL AI**! Mi motor está conectado en tiempo real a fuentes web oficiales, artículos, ensayos, marcos de desarrollo sostenible y retórica. ¿Qué tema, debate o propuesta deseas analizar hoy?"}
+        {"role": "assistant", "content": "¡Bienvenido a **SYLLATERAL AI**! Soy tu consultor de Inteligencia Cívica, oratoria, desarrollo sostenible y debate. ¿Qué tema, proyecto o propuesta comunitaria deseas abordar hoy?"}
     ]
 
 # Renderizar historial
@@ -102,18 +102,18 @@ for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
-# Entrada de usuario
+# Captura de mensaje del usuario
 if user_input := st.chat_input("Escribe tu idea, consulta, propuesta o debate..."):
     st.session_state.messages.append({"role": "user", "content": user_input})
     with st.chat_message("user"):
         st.markdown(user_input)
 
     with st.chat_message("assistant"):
-        with st.spinner("Investigando en tiempo real y construyendo respuesta..."):
+        with st.spinner("Analizando propuesta y estructurando estrategia..."):
             try:
                 client = genai.Client(api_key=api_key.strip())
 
-                # Formatear historial para Gemini
+                # Historial ordenado para Gemini
                 history_contents = []
                 for m in st.session_state.messages:
                     role = "user" if m["role"] == "user" else "model"
@@ -122,14 +122,13 @@ if user_input := st.chat_input("Escribe tu idea, consulta, propuesta o debate...
                         "parts": [{"text": m["content"]}]
                     })
 
-                # Generar contenido activando Google Search Grounding
+                # Generar contenido de forma optimizada sin saturar la cuota
                 response = client.models.generate_content(
                     model="gemini-3.8-flash",
                     contents=history_contents,
                     config=types.GenerateContentConfig(
                         system_instruction=INSTRUCCION_SISTEMA,
                         temperature=0.7,
-                        tools=[{"google_search": {}}]  # Búsqueda en vivo en internet
                     )
                 )
 
@@ -137,4 +136,4 @@ if user_input := st.chat_input("Escribe tu idea, consulta, propuesta o debate...
                 st.session_state.messages.append({"role": "assistant", "content": response.text})
 
             except Exception as e:
-                st.error(f"❌ Error al consultar la API: {e}")
+                st.error(f"❌ Error al consultar la API: {e}\n\nSi persiste, espera unos segundos o verifica tu API Key en Google AI Studio.")
