@@ -127,7 +127,7 @@ if user_input := st.chat_input("Escribe tu idea, consulta, propuesta o debate...
 
                 # Generación fluida de respuesta
                 response = client.models.generate_content(
-                    model="gemini-2.0-flash",
+                    model="gemini-3.8-flash",
                     contents=formatted_contents,
                     config=types.GenerateContentConfig(
                         system_instruction=INSTRUCCION_SISTEMA,
