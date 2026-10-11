@@ -1,4 +1,5 @@
 import streamlit as st
+import time
 from google import genai
 from google.genai import types
 
@@ -39,6 +40,9 @@ DATOS Y CONTEXTO:
 Pautas: Sé motivador, firme, elocuente y conversacional. Ayuda a estructurar propuestas comunitarias y discursos persuasivos de 2 minutos.
 """
 
+# Obtención transparente de la API Key desde los secretos de Streamlit
+api_key = st.secrets.get("GEMINI_API_KEY", None)
+
 # ==========================================
 # 2. MENÚ DE NAVEGACIÓN LATERAL
 # ==========================================
@@ -54,11 +58,7 @@ with st.sidebar:
     )
     
     st.markdown("---")
-    if seccion == "2. Chatbot Cívico":
-        st.subheader("🔑 Autenticación")
-        api_key = st.text_input("Ingresa tu API Key de Gemini:", type="password")
-    else:
-        api_key = None
+    st.markdown("<div class='database-box'>🌐 <b>Estado del Sistema:</b><br> Acceso Público Directo Activo</div>", unsafe_allow_html=True)
 
 # ==========================================
 # SECCIÓN 1: INICIO / CASO DE ESTUDIO
@@ -119,10 +119,10 @@ if seccion == "1. Inicio / Caso de Estudio":
 # ==========================================
 elif seccion == "2. Chatbot Cívico":
     st.title("💬 Asistente de Inteligencia Cívica")
-    st.markdown("Interactive System for Community Leadership & Strategic Speechwriting.")
+    st.markdown("Sistema Conversacional para Liderazgo Comunitario y Oratoria Estratégica.")
 
     if not api_key:
-        st.warning("⚠️ Ingresa tu API Key de Gemini en el panel lateral izquierdo para activar el motor conversacional.")
+        st.error("⚙️ Error de configuración: La clave de la API no se ha encontrado en los Secretos de Streamlit. Revisa la configuración de 'Secrets' en Streamlit Cloud.")
         st.stop()
 
     if "messages" not in st.session_state:
@@ -140,26 +140,40 @@ elif seccion == "2. Chatbot Cívico":
             st.markdown(user_input)
 
         with st.chat_message("assistant"):
-            with st.spinner("Procesando consulta..."):
-                try:
-                    client = genai.Client(api_key=api_key.strip())
-                    history_contents = []
-                    for m in st.session_state.messages:
-                        role = "user" if m["role"] == "user" else "model"
-                        history_contents.append({"role": role, "parts": [{"text": m["content"]}]})
+            with st.spinner("Analizando propuesta y conectando con el motor cívico..."):
+                client = genai.Client(api_key=api_key.strip())
+                history_contents = []
+                for m in st.session_state.messages:
+                    role = "user" if m["role"] == "user" else "model"
+                    history_contents.append({"role": role, "parts": [{"text": m["content"]}]})
 
-                    response = client.models.generate_content(
-                        model="gemini-3.8-flash",
-                        contents=history_contents,
-                        config=types.GenerateContentConfig(
-                            system_instruction=INSTRUCCION_SISTEMA,
-                            temperature=0.7,
+                # Sistema de generación robusto con reintento y fallback
+                modelos = ["gemini-2.5-flash", "gemini-1.5-flash"]
+                exito = False
+                
+                for mod in modelos:
+                    try:
+                        response = client.models.generate_content(
+                            model=mod,
+                            contents=history_contents,
+                            config=types.GenerateContentConfig(
+                                system_instruction=INSTRUCCION_SISTEMA,
+                                temperature=0.7,
+                            )
                         )
-                    )
-                    st.markdown(response.text)
-                    st.session_state.messages.append({"role": "assistant", "content": response.text})
-                except Exception as e:
-                    st.error(f"❌ Error de conexión: {e}")
+                        st.markdown(response.text)
+                        st.session_state.messages.append({"role": "assistant", "content": response.text})
+                        exito = True
+                        break
+                    except Exception as e:
+                        if "503" in str(e) or "UNAVAILABLE" in str(e):
+                            time.sleep(1) # Reintento breve si hay saturación
+                            continue
+                        else:
+                            last_error = e
+
+                if not exito:
+                    st.error("⚠️ El servidor de inteligencia artificial está experimentando una alta demanda en este momento. Por favor, reintenta enviar tu mensaje en unos segundos.")
 
 # ==========================================
 # SECCIÓN 3: ENTRENADOR DE ORATORIA
@@ -176,10 +190,8 @@ elif seccion == "3. Entrenador de Oratoria":
 
     st.info("💡 **Instrucciones:** Permite el acceso a tu cámara cuando se solicite para interactuar con tu modelo de Machine Learning.")
 
-    # Enlace directo por si el navegador bloquea el iframe de la cámara
     st.markdown("[🔗 Abrir Entrenador de Teachable Machine en Pantalla Completa](https://teachablemachine.withgoogle.com/models/goHC2RCen/)")
     
     st.markdown("---")
 
-    # Integración del modelo mediante iframe embebido
     st.components.v1.iframe("https://teachablemachine.withgoogle.com/models/goHC2RCen/", height=650, scrolling=True)
