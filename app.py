@@ -1,5 +1,4 @@
 import streamlit as st
-import time
 from google import genai
 from google.genai import types
 
@@ -122,7 +121,7 @@ elif seccion == "2. Chatbot Cívico":
     st.markdown("Sistema Conversacional para Liderazgo Comunitario y Oratoria Estratégica.")
 
     if not api_key:
-        st.error("⚙️ Error de configuración: La clave de la API no se ha encontrado en los Secretos de Streamlit. Revisa la configuración de 'Secrets' en Streamlit Cloud.")
+        st.error("⚙️ Configuración requerida: No se ha detectado la clave en Streamlit Secrets.")
         st.stop()
 
     if "messages" not in st.session_state:
@@ -140,40 +139,26 @@ elif seccion == "2. Chatbot Cívico":
             st.markdown(user_input)
 
         with st.chat_message("assistant"):
-            with st.spinner("Analizando propuesta y conectando con el motor cívico..."):
-                client = genai.Client(api_key=api_key.strip())
-                history_contents = []
-                for m in st.session_state.messages:
-                    role = "user" if m["role"] == "user" else "model"
-                    history_contents.append({"role": role, "parts": [{"text": m["content"]}]})
+            with st.spinner("Analizando propuesta y estructurando respuesta..."):
+                try:
+                    client = genai.Client(api_key=api_key.strip())
+                    history_contents = []
+                    for m in st.session_state.messages:
+                        role = "user" if m["role"] == "user" else "model"
+                        history_contents.append({"role": role, "parts": [{"text": m["content"]}]})
 
-                # Sistema de generación robusto con reintento y fallback
-                modelos = ["gemini-2.5-flash", "gemini-1.5-flash"]
-                exito = False
-                
-                for mod in modelos:
-                    try:
-                        response = client.models.generate_content(
-                            model=mod,
-                            contents=history_contents,
-                            config=types.GenerateContentConfig(
-                                system_instruction=INSTRUCCION_SISTEMA,
-                                temperature=0.7,
-                            )
+                    response = client.models.generate_content(
+                        model="gemini-3.8-flash",
+                        contents=history_contents,
+                        config=types.GenerateContentConfig(
+                            system_instruction=INSTRUCCION_SISTEMA,
+                            temperature=0.7,
                         )
-                        st.markdown(response.text)
-                        st.session_state.messages.append({"role": "assistant", "content": response.text})
-                        exito = True
-                        break
-                    except Exception as e:
-                        if "503" in str(e) or "UNAVAILABLE" in str(e):
-                            time.sleep(1) # Reintento breve si hay saturación
-                            continue
-                        else:
-                            last_error = e
-
-                if not exito:
-                    st.error("⚠️ El servidor de inteligencia artificial está experimentando una alta demanda en este momento. Por favor, reintenta enviar tu mensaje en unos segundos.")
+                    )
+                    st.markdown(response.text)
+                    st.session_state.messages.append({"role": "assistant", "content": response.text})
+                except Exception as e:
+                    st.error(f"❌ Error al consultar el servidor: {e}")
 
 # ==========================================
 # SECCIÓN 3: ENTRENADOR DE ORATORIA
