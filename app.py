@@ -147,16 +147,29 @@ elif seccion == "2. Chatbot Cívico":
                         role = "user" if m["role"] == "user" else "model"
                         history_contents.append({"role": role, "parts": [{"text": m["content"]}]})
 
-                    response = client.models.generate_content(
-                        model="gemini-3.8-flash",
-                        contents=history_contents,
-                        config=types.GenerateContentConfig(
-                            system_instruction=INSTRUCCION_SISTEMA,
-                            temperature=0.7,
-                        )
-                    )
-                    st.markdown(response.text)
-                    st.session_state.messages.append({"role": "assistant", "content": response.text})
+                    # Sistema automático con respaldo múltiple (Fallback) para evitar errores 503
+                    modelos_disponibles = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]
+                    response = None
+
+                    for mod in modelos_disponibles:
+                        try:
+                            response = client.models.generate_content(
+                                model=mod,
+                                contents=history_contents,
+                                config=types.GenerateContentConfig(
+                                    system_instruction=INSTRUCCION_SISTEMA,
+                                    temperature=0.7,
+                                )
+                            )
+                            break
+                        except Exception:
+                            continue
+
+                    if response:
+                        st.markdown(response.text)
+                        st.session_state.messages.append({"role": "assistant", "content": response.text})
+                    else:
+                        st.error("❌ Los servidores están experimentando alta demanda momentánea. Por favor, reintenta enviar tu mensaje en unos segundos.")
                 except Exception as e:
                     st.error(f"❌ Error al consultar el servidor: {e}")
 
